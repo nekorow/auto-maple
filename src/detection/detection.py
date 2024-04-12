@@ -1,10 +1,12 @@
 """A module for classifying directional arrows using TensorFlow."""
 
+import time
+import random
 import cv2
 import tensorflow as tf
 import numpy as np
 from src.common import utils
-
+from src.common.rune_solver import find_arrow_directions
 
 #########################
 #       Functions       #
@@ -175,19 +177,57 @@ def merge_detection(model, image):
 
     return classes
 
+def bind(context):
+    context.set_filter(interception.is_keyboard, interception_filter_key_state.INTERCEPTION_FILTER_KEY_ALL.value)
+    print("Click any key on your keyboard.")
+    device = None
+    while True:
+        device = context.wait()
+        if interception.is_keyboard(device):
+            print(f"Bound to keyboard: {context.get_HWID(device)}.")
+            c.set_filter(interception.is_keyboard, 0)
+            break
+    return device
+
+def solve_rune():
+    """
+    Given the (x, y) location of a rune, the bot will attempt to move the player to the rune and solve it.
+    """
+    while True:
+        print("Pathing towards rune...")
+        # Activate the rune.
+        time.sleep(1)
+        print("Pressed H")
+        # Take a picture of the rune.
+        time.sleep(1)
+        with mss.mss() as sct:
+            img = np.array(sct.grab(monitor))
+        print("Attempting to solve rune... with new bot")
+        directions = find_arrow_directions(img)
+
+        if len(directions) == 4:
+            print(f"Directions: {directions}.")
+            for d, _ in directions:
+                print("Pressed D")
+
+            rune_location = g.get_rune_location()
+            if rune_location is None:
+                print("Rune has been 1ed.")
+                break
+            else:
+                print("Trying again...")
+
 
 # Script for testing the detection module by itself
 if __name__ == '__main__':
     from src.common import config, utils
     import mss
-    config.enabled = True
+    # config.enabled = True
+    print("RREACHING THE RUNE PART")
     monitor = {'top': 0, 'left': 0, 'width': 1366, 'height': 768}
-    model = load_model()
+    # model = load_model()
     while True:
-        with mss.mss() as sct:
-            frame = np.array(sct.grab(monitor))
-            cv2.imshow('frame', canny(filter_color(frame)))
-            arrows = merge_detection(model, frame)
-            print(arrows)
+            print("Called Solve Rune")
+            solve_rune()
             if cv2.waitKey(1) & 0xFF == 27:     # 27 is ASCII for the Esc key
                 break

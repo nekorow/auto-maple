@@ -3,6 +3,7 @@
 import threading
 import time
 import git
+import os
 import cv2
 import inspect
 import importlib
@@ -16,6 +17,7 @@ from src.command_book.command_book import CommandBook
 from src.routine.components import Point
 from src.common.vkeys import press, click
 from src.common.interfaces import Configurable
+from src.common.rune_solver import find_arrow_directions
 
 
 # The rune's buff icon
@@ -117,38 +119,62 @@ class Bot(Configurable):
         move(*self.rune_pos).execute()
         adjust = self.command_book['adjust']
         adjust(*self.rune_pos).execute()
+        time.sleep(0.5)
+        adjust(*self.rune_pos).execute()
         time.sleep(0.2)
         press(self.config['Interact'], 1, down_time=0.2)        # Inherited from Configurable
 
         print('\nSolving rune:')
         inferences = []
-        for _ in range(15):
-            frame = config.capture.frame
-            solution = detection.merge_detection(model, frame)
-            if solution:
-                print(', '.join(solution))
-                if solution in inferences:
-                    print('Solution found, entering result')
-                    for arrow in solution:
-                        press(arrow, 1, down_time=0.1)
-                    time.sleep(1)
-                    for _ in range(3):
-                        time.sleep(0.3)
-                        frame = config.capture.frame
-                        rune_buff = utils.multi_match(frame[:frame.shape[0] // 8, :],
-                                                      RUNE_BUFF_TEMPLATE,
-                                                      threshold=0.9)
-                        if rune_buff:
-                            rune_buff_pos = min(rune_buff, key=lambda p: p[0])
-                            target = (
-                                round(rune_buff_pos[0] + config.capture.window['left']),
-                                round(rune_buff_pos[1] + config.capture.window['top'])
-                            )
-                            click(target, button='right')
-                    self.rune_active = False
-                    break
-                elif len(solution) == 4:
-                    inferences.append(solution)
+        # for _ in range(15):
+        count = 0
+        while True:
+            img = config.capture.frame
+            cv2.imwrite('captured_image.png', img)
+            directions = find_arrow_directions(img)
+
+            print("Here are the directions")
+            print(directions)
+            print(len(directions))
+
+            if len(directions) == 4:
+                print(f"Directions: {directions}.")
+                for d, _ in directions:
+                    time.sleep(0.3)
+                    press(d, 1, down_time=0.1)
+                    print("Pressing ", d)
+                break
+
+            time.sleep(2)
+            print(count)
+            count = count + 1
+            if count == 4:
+                break
+            # solution = detection.merge_detection(model, frame)
+            # if solution:
+            #     print(', '.join(solution))
+            #     if solution in inferences:
+            #         print('Solution found, entering result')
+            #         for arrow in solution:
+            #             press(arrow, 1, down_time=0.1)
+            #         time.sleep(1)
+            #         for _ in range(3):
+            #             time.sleep(0.3)
+            #             frame = config.capture.frame
+            #             rune_buff = utils.multi_match(frame[:frame.shape[0] // 8, :],
+            #                                           RUNE_BUFF_TEMPLATE,
+            #                                           threshold=0.9)
+            #             if rune_buff:
+            #                 rune_buff_pos = min(rune_buff, key=lambda p: p[0])
+            #                 target = (
+            #                     round(rune_buff_pos[0] + config.capture.window['left']),
+            #                     round(rune_buff_pos[1] + config.capture.window['top'])
+            #                 )
+            #                 click(target, button='right')
+            #         self.rune_active = False
+            #         break
+            #     elif len(solution) == 4:
+            #         inferences.append(solution)
 
     def load_commands(self, file):
         try:
